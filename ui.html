@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>ImageLab</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141821; --panel2:#1a1f2b; --line:#232a38;
+    --txt:#e6ebf5; --dim:#8b98ad; --accent:#5b8cff; --ok:#3ddc97; --warn:#ffb454; --err:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:radial-gradient(1200px 600px at 20% -10%,#18203a 0%,var(--bg) 55%);
+    color:var(--txt); font:14px/1.6 "Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+    display:flex; flex-direction:column; overflow:hidden; user-select:none;
+  }
+  header{
+    height:54px; flex:0 0 auto; display:flex; align-items:center; gap:12px;
+    padding:0 16px; border-bottom:1px solid var(--line); background:rgba(16,20,28,.72);
+    backdrop-filter:blur(8px);
+  }
+  .brand{font-size:15px; font-weight:600; letter-spacing:.4px; white-space:nowrap}
+  .brand span{color:var(--accent)}
+  .chips{display:flex; gap:8px; flex-wrap:nowrap; overflow:hidden}
+  .chip{
+    font-size:12px; color:var(--dim); background:var(--panel); border:1px solid var(--line);
+    padding:3px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .chip b{color:var(--txt); font-weight:500}
+  .dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dim); margin-right:6px; vertical-align:1px}
+  .dot.ok{background:var(--ok); box-shadow:0 0 8px var(--ok)}
+  .dot.wait{background:var(--warn); animation:pulse 1.2s infinite}
+  .dot.err{background:var(--err)}
+  @keyframes pulse{50%{opacity:.35}}
+  .spacer{flex:1}
+  .iconbtn{
+    background:transparent; border:1px solid var(--line); color:var(--dim); border-radius:8px;
+    padding:5px 11px; font-size:12px; cursor:pointer; white-space:nowrap;
+  }
+  .iconbtn:hover{color:var(--txt); border-color:#39435a}
+
+  main{flex:1; display:grid; grid-template-columns:404px 1fr; min-height:0}
+  .left{min-width:0; border-right:1px solid var(--line); padding:14px; display:flex; flex-direction:column; gap:10px; min-height:0}
+
+  .tabs{display:flex; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px}
+  .tabs button{
+    flex:1; border:0; background:transparent; color:var(--dim); padding:7px; border-radius:8px;
+    font:13px inherit; cursor:pointer; transition:.15s;
+  }
+  .tabs button.on{background:var(--panel2); color:var(--txt); box-shadow:0 1px 0 #2b3446 inset}
+
+  .label{font-size:12px; color:var(--dim); margin-bottom:5px; display:flex; justify-content:space-between}
+  textarea{
+    flex:1; min-height:96px; resize:none; background:var(--panel); color:var(--txt);
+    border:1px solid var(--line); border-radius:10px; padding:11px; font:13px/1.65 inherit;
+    outline:none; transition:border-color .15s;
+  }
+  textarea:focus{border-color:var(--accent)}
+  textarea::placeholder{color:#5b6678}
+
+  .refs{display:flex; gap:7px; align-items:center; overflow-x:auto; min-height:64px; padding:2px}
+  .refs .thumb{position:relative; flex:0 0 auto}
+  .refs img{height:58px; border-radius:8px; border:1px solid var(--line); display:block}
+  .refs .x{
+    position:absolute; top:-5px; right:-5px; width:17px; height:17px; border-radius:50%;
+    background:#39435a; color:#fff; border:0; font-size:11px; line-height:17px; cursor:pointer; padding:0;
+  }
+  .refs .x:hover{background:var(--err)}
+  .addref{
+    flex:0 0 auto; width:58px; height:58px; border-radius:8px; border:1px dashed #3a465e;
+    background:transparent; color:#6f7c92; font-size:20px; cursor:pointer;
+  }
+  .addref:hover{border-color:var(--accent); color:var(--accent)}
+
+  .params{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  select,input[type=number],input[type=text]{
+    width:100%; background:var(--panel); color:var(--txt); border:1px solid var(--line);
+    border-radius:8px; padding:6px 8px; font:12.5px inherit; outline:none;
+  }
+  select:focus,input:focus{border-color:var(--accent)}
+  select:disabled{color:#4d5871}
+  input[type=range]{width:100%; accent-color:var(--accent)}
+  .row{display:flex; align-items:center; gap:8px}
+  .hint{font-size:11.5px; color:#6f7c92; line-height:1.55}
+  .hint code{color:#9fb4d8; background:#1b2231; padding:1px 4px; border-radius:4px}
+  .mini{
+    background:transparent; border:1px solid var(--line); color:#8fa0bb; border-radius:6px;
+    padding:2px 7px; font-size:11.5px; cursor:pointer; font-family:inherit; line-height:1.5;
+  }
+  .mini:hover{color:var(--accent); border-color:var(--accent)}
+  .mini:disabled{color:#4d5871; cursor:not-allowed; border-color:var(--line)}
+
+  .go{
+    width:100%; padding:11px; border-radius:10px; border:0; cursor:pointer;
+    background:linear-gradient(180deg,#6a97ff,#4a7bf0); color:#fff; font-size:14px; font-weight:600;
+    letter-spacing:.5px; transition:filter .15s, transform .05s;
+  }
+  .go:hover{filter:brightness(1.08)}
+  .go:active{transform:translateY(1px)}
+  .go:disabled{background:#2b3446; color:#68758c; cursor:not-allowed; filter:none}
+  .go.stop{background:linear-gradient(180deg,#e8615a,#c9413a)}
+  .go.stop:hover{filter:brightness(1.1)}
+  .go.stop:disabled{background:#3a2b2b; color:#a98080; cursor:default; filter:none}
+
+  .right{min-width:0; padding:14px; display:flex; flex-direction:column; gap:9px; min-height:0}
+  .stage{
+    flex:1; position:relative; border:1px solid var(--line); border-radius:14px; overflow:hidden;
+    background:
+      linear-gradient(45deg,#11151d 25%,transparent 25%,transparent 75%,#11151d 75%),
+      linear-gradient(45deg,#11151d 25%,#0e1219 25%,#0e1219 75%,#11151d 75%);
+    background-size:24px 24px; background-position:0 0,12px 12px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stage img{max-width:100%; max-height:100%; object-fit:contain; display:none; border-radius:6px}
+  .empty{color:#54607a; text-align:center; font-size:13px; line-height:2}
+  .empty b{color:#7f8da6; font-weight:500}
+  .bar{position:absolute; left:0; right:0; bottom:0; height:3px; background:#1b2130; display:none}
+  .bar i{display:block; height:100%; width:30%; background:linear-gradient(90deg,transparent,var(--accent),transparent); animation:slide 1.3s linear infinite}
+  @keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(430%)}}
+
+  .meta{display:flex; gap:13px; font-size:12px; color:var(--dim); flex-wrap:wrap; min-height:20px}
+  .meta b{color:#c8d3e6; font-weight:500}
+  .actions{display:flex; gap:8px}
+  .actions button{
+    flex:1; padding:8px; border-radius:9px; border:1px solid var(--line); background:var(--panel);
+    color:var(--txt); font-size:12.5px; cursor:pointer;
+  }
+  .actions button:hover:not(:disabled){border-color:#39435a; background:var(--panel2)}
+  .actions button:disabled{color:#4d5871; cursor:not-allowed}
+
+  .subtab{display:flex; gap:14px; font-size:12.5px; color:var(--dim); border-bottom:1px solid var(--line); padding-bottom:6px}
+  .subtab span{cursor:pointer; padding-bottom:5px; margin-bottom:-7px; border-bottom:2px solid transparent}
+  .subtab span.on{color:var(--txt); border-bottom-color:var(--accent)}
+
+  .strip{height:118px; overflow-y:auto; overflow-x:hidden}
+  .gallery{display:flex; gap:8px; flex-wrap:wrap}
+  .gallery img{height:62px; border-radius:8px; border:1px solid var(--line); cursor:pointer; opacity:.8}
+  .gallery img:hover{opacity:1; border-color:var(--accent)}
+
+  .hist{display:flex; flex-direction:column; gap:4px}
+  .hist .item{min-width:0;
+    display:flex; gap:8px; align-items:center; padding:5px 7px; border-radius:7px;
+    cursor:pointer; font-size:12.5px; color:#a9b6cc;
+  }
+  .hist .item:hover{background:var(--panel2); color:var(--txt)}
+  .hist .tag{font-size:10.5px; padding:1px 5px; border-radius:4px; background:#222b3c; color:#8fa0bb; flex:0 0 auto}
+  .hist .tag.edit{background:#2b2438; color:#b79bd8}
+  .hist .txt{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hist .time{font-size:11px; color:#5d6a80; flex:0 0 auto}
+  .hist .del{
+    flex:0 0 auto; width:18px; height:18px; border-radius:50%; border:0; padding:0;
+    background:transparent; color:#7c8aa0; cursor:pointer; font-size:11px; line-height:18px;
+    opacity:0; transition:opacity .12s, background .12s;
+  }
+  .hist .item:hover .del{opacity:1}
+  .hist .del:hover{background:#7c3535; color:#fff}
+  .histbar{display:flex; justify-content:space-between; align-items:center;
+    padding:0 2px 6px; font-size:11.5px; color:#6f7c92}
+
+  .emptyhint{color:#4f5b71; font-size:12px; padding:8px 2px}
+
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(12px);
+    background:#221c2c; border:1px solid #46395e; color:#e2d9f0; padding:10px 16px; border-radius:10px;
+    font-size:13px; opacity:0; pointer-events:none; transition:.2s; max-width:74%; z-index:9; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .toast.bad{background:#2a1e22; border-color:#5c3238; color:#ffd9d9}
+
+  .offline{
+    position:fixed; left:50%; top:58px; transform:translateX(-50%) translateY(-8px);
+    background:#2a1a1c; border:1px solid #6b3438; color:#ffc9c9; padding:9px 16px;
+    border-radius:10px; font-size:13px; opacity:0; pointer-events:none; transition:.25s;
+    z-index:12; box-shadow:0 8px 24px rgba(0,0,0,.4); max-width:80%; text-align:center;
+  }
+  .offline.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  /* 图库 */
+  .modal{position:fixed; inset:0; background:rgba(5,7,11,.74); backdrop-filter:blur(3px);
+    display:none; align-items:center; justify-content:center; z-index:20}
+  .modal.show{display:flex}
+  .modal-box{width:min(1100px,93vw); height:min(780px,89vh); background:var(--panel);
+    border:1px solid var(--line); border-radius:16px; display:flex; flex-direction:column;
+    overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .modal-head{display:flex; gap:9px; align-items:center; padding:12px 14px;
+    border-bottom:1px solid var(--line)}
+  .modal-title{font-size:14px; font-weight:600; white-space:nowrap}
+  .modal-title span{color:var(--dim); font-weight:400; font-size:12px}
+  .modal-head input{flex:1; max-width:280px; margin-left:auto}
+  .modal-tools{display:flex; gap:12px; align-items:center; padding:8px 14px;
+    font-size:12.5px; color:var(--dim); border-bottom:1px solid var(--line)}
+  .modal-tools button{padding:5px 10px; border-radius:7px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--txt); font-size:12px; cursor:pointer}
+  .modal-tools button:hover:not(:disabled){border-color:#39435a}
+  .modal-tools button:disabled{color:#4d5871; cursor:not-allowed}
+  .modal-tools button.danger:hover:not(:disabled){border-color:#7c3a3a; color:#ffb0b0}
+  .libgrid{flex:1; overflow-y:auto; padding:12px; display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:10px; align-content:start}
+  .libitem{position:relative; border:1px solid var(--line); border-radius:10px;
+    overflow:hidden; background:var(--panel2); transition:border-color .15s}
+  .libitem:hover{border-color:#39435a}
+  .libitem.sel{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .libitem img{width:100%; height:148px; object-fit:cover; display:block; cursor:zoom-in}
+  .libitem .cap{padding:5px 7px; font-size:10.5px; color:#7f8da6; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis}
+  .libitem .pick{position:absolute; top:6px; left:6px; width:17px; height:17px;
+    accent-color:var(--accent); cursor:pointer; opacity:.85}
+  .libitem .del{position:absolute; top:6px; right:6px; width:20px; height:20px; border-radius:50%;
+    border:0; background:rgba(20,24,33,.85); color:#c9d3e4; cursor:pointer; font-size:12px;
+    line-height:20px; padding:0; opacity:0; transition:opacity .15s}
+  .libitem:hover .del{opacity:1}
+  .libitem .del:hover{background:#7c3535; color:#fff}
+  .libmore{padding:10px; text-align:center}
+  .libmore button{padding:6px 16px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--dim); cursor:pointer; font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Image<span>Lab</span></div>
+  <div class="chips">
+    <div class="chip"><i class="dot wait" id="dotBackend"></i><span id="txtBackend">启动中…</span></div>
+    <div class="chip">显存 <b id="txtVram">—</b></div>
+    <div class="chip" id="chipModel" title="">模型 <b id="txtModel">—</b></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="iconbtn" id="btnQuit">退出</button>
+</header>
+
+<main>
+  <section class="left">
+    <div class="tabs">
+      <button class="on" data-mode="t2i">文生图</button>
+      <button data-mode="edit">图像编辑</button>
+    </div>
+
+    <div id="refPanel" style="display:none">
+      <div class="label"><span>参考图</span><span id="refCount">0 / 10</span></div>
+      <div class="refs" id="refs">
+        <button class="addref" id="btnAddRef" title="从本机选择图片">+</button>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+    </div>
+
+    <div style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div class="label"><span>提示词</span>
+        <span style="display:flex;align-items:center;gap:7px">
+          <button class="mini" id="btnUndoEnhance" style="display:none">↩ 还原</button>
+          <button class="mini" id="btnEnhance" title="用 PE 模型把提示词扩写得更详细">✦ 增强</button>
+          <span id="charCount">0 字</span>
+        </span>
+      </div>
+      <textarea id="prompt" placeholder="例如：一块极简风格的木制招牌，上面用粗黑体写着「夜雨书店」四个汉字，白天，字迹清晰可辨"></textarea>
+    </div>
+
+    <div class="params">
+      <div id="cellEngine" style="grid-column:1 / -1">
+        <div class="label"><span>模型引擎</span><span id="engineNote"></span></div>
+        <select id="engine" title="切换生成引擎（不同模型）"></select>
+      </div>
+      <div id="cellSize">
+        <div class="label"><span>尺寸</span></div>
+        <select id="size">
+          <option value="1024x1024" selected>1024 × 1024</option>
+          <option value="896x1152">896 × 1152 竖</option>
+          <option value="1152x896">1152 × 896 横</option>
+          <option value="768x768">768 × 768 快</option>
+        </select>
+      </div>
+      <div id="cellEditRes" style="display:none">
+        <div class="label"><span>编辑精度</span></div>
+        <select id="editRes" title="输出尺寸 = 参考图比例 × 这个基准值">
+          <option value="512">512 · 快</option>
+          <option value="768">768</option>
+          <option value="1024" selected>1024 · 标准</option>
+          <option value="1280">1280 · 大</option>
+          <option value="1536">1536 · 显存吃紧</option>
+        </select>
+      </div>
+      <div>
+        <div class="label"><span>步数</span><span id="stepsVal">20</span></div>
+        <input type="range" id="steps" min="4" max="30" step="1" value="20" />
+      </div>
+      <div>
+        <div class="label"><span>文本编码器</span></div>
+        <select id="clip" title="W4A8 省显存；INT8 画质理论更好"></select>
+      </div>
+      <div>
+        <div class="label"><span>批量</span><span id="batchEta"></span></div>
+        <div style="display:flex;gap:6px">
+          <select id="batch" style="flex:1">
+            <option value="1" selected>1 张</option>
+            <option value="2">2 张</option>
+            <option value="4">4 张</option>
+            <option value="8">8 张</option>
+            <option value="16">16 张</option>
+            <option value="custom">自定义…</option>
+          </select>
+          <input type="number" id="batchCustom" min="1" max="32" value="12"
+                 style="width:62px;display:none" title="1–32" />
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <label class="row" style="flex:0 0 auto;font-size:12.5px;color:var(--dim)">
+        <input type="checkbox" id="randSeed" checked style="accent-color:var(--accent)" /> 随机种子
+      </label>
+      <input type="number" id="seed" value="42" disabled style="flex:1" />
+    </div>
+
+    <button class="go" id="btnGen">生成　<span style="opacity:.7;font-weight:400">Ctrl+Enter</span></button>
+    <button class="go stop" id="btnStop" style="display:none">■ 停止生成　<span style="opacity:.7;font-weight:400">Esc</span></button>
+    <div class="hint" id="hint">
+      中文文字：整个提示词用中文写，目标文字用 <code>「」</code> 括起来。
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="stage" id="stage">
+      <div class="empty" id="empty">
+        <div style="font-size:34px;opacity:.35">◍</div>
+        <b>输入提示词后点生成</b><br />
+        首张约 15 秒（含加载模型），之后 10 秒左右
+      </div>
+      <img id="img" alt="" />
+      <div class="bar" id="bar"><i></i></div>
+    </div>
+
+    <div class="meta">
+      <span>耗时 <b id="mTime">—</b></span>
+      <span>种子 <b id="mSeed">—</b></span>
+      <span>显存峰值 <b id="mVram">—</b></span>
+      <span id="mFile" style="color:#55617a"></span>
+    </div>
+
+    <div class="actions">
+      <button id="btnSave" disabled>保存图片</button>
+      <button id="btnAsRef" disabled>用作参考图</button>
+      <button id="btnAgain" disabled>再生成</button>
+    </div>
+
+    <div class="subtab">
+      <span class="on" data-panel="gallery">本次结果</span>
+      <span data-panel="history">历史记录</span>
+      <span data-panel="library" style="margin-left:6px;color:#9fb4d8">图库 ▸</span>
+    </div>
+
+    <div class="strip" id="panelGallery">
+      <div class="gallery" id="gallery"></div>
+      <div class="emptyhint" id="galleryEmpty">还没有生成结果</div>
+    </div>
+    <div class="strip" id="panelHistory" style="display:none">
+      <div class="histbar">
+        <span id="histCount">0 条</span>
+        <button class="mini" id="histClear">清空</button>
+      </div>
+      <div class="hist" id="hist"></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="offline" id="offline">与本地服务的连接已断开 · 关掉这个窗口，重新双击「启动_ImageLab.bat」</div>
+
+<div class="modal" id="libModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">图库 <span id="libCount">—</span></div>
+      <input type="text" id="libSearch" placeholder="按文件名筛选，例如 imagelab" />
+      <button class="iconbtn" id="libRefresh">刷新</button>
+      <button class="iconbtn" id="libOpenFolder">打开文件夹</button>
+      <button class="iconbtn" id="libClose">关闭</button>
+    </div>
+    <div class="modal-tools">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="libAll" style="accent-color:var(--accent)" /> 全选
+      </label>
+      <span id="libSelInfo">已选 0 张</span>
+      <button id="libDelete" class="danger" disabled>删除选中</button>
+      <span style="flex:1"></span>
+      <span id="libSizeInfo"></span>
+    </div>
+    <div class="libgrid" id="libGrid"></div>
+    <div class="libmore" id="libMoreWrap" style="display:none">
+      <button id="libMore">加载更多</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const HIST_KEY = 'qs_history_v2';
+let mode = 't2i';
+let refs = [];            // [{name, url}]
+let results = [];         // [{filename, subfolder, seed, url}]
+let current = 0;
+let userPicked = false;   // 本轮任务里用户是否手动点过缩略图
+let busy = false;
+let curJob = null;        // 正在跑的任务 id，停止按钮要用
+let stopping = false;     // 已发出停止请求，等后端收尾
+
+/* ---------------- 心跳 ---------------- */
+async function beat(){ try{ await fetch('/api/beat',{method:'POST'}); }catch(e){} }
+setInterval(beat, 8000); beat();
+
+/* ---------------- 状态 ---------------- */
+let healthFails = 0;
+function netMsg(e){
+  const m = (e && e.message) || String(e);
+  if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)){
+    return '连不上本地服务（ImageLab 可能已退出）。关掉窗口重新启动即可。';
+  }
+  return m;
+}
+
+async function health(){
+  try{
+    const h = await (await fetch('/api/health')).json();
+    healthFails = 0;
+    $('offline').classList.remove('show');
+    if (h.ready){
+      $('dotBackend').className = 'dot ok';
+      $('txtBackend').textContent = '就绪';
+      if (!busy) $('btnGen').disabled = false;
+    } else {
+      $('dotBackend').className = h.error ? 'dot err' : 'dot wait';
+      $('txtBackend').textContent = h.error ? '后端错误' : '启动中…';
+      firstError(h.error);
+      $('btnGen').disabled = true;
+    }
+    if (h.vram){
+      const used = h.vram.used/1024, total = h.vram.total/1024, free = total - used;
+      $('txtVram').textContent = used.toFixed(1) + ' / ' + total.toFixed(0);
+      $('txtVram').style.color = free < 1.5 ? 'var(--warn)' : 'var(--txt)';
+    }
+    if (h.encoders && h.encoders.length && $('clip').options.length !== h.encoders.length){
+      const keep = $('clip').value;
+      $('clip').innerHTML = h.encoders.map(n=>{
+        const label = n.includes('w4a8') ? 'W4A8（省显存）' : n.includes('int8') ? 'INT8（高保真）' : n;
+        return '<option value="'+n+'">'+label+'</option>';
+      }).join('');
+      if (keep) $('clip').value = keep;
+    }
+    if (h.engine && h.engine.name){
+      // 完整引擎名由后端给，前端不拼缩写——这样接新模型时不用改前端
+      const e = h.engine;
+      $('txtModel').textContent = e.name + (e.precision ? ' · ' + e.precision : '');
+      $('chipModel').title = '引擎：' + e.name + (e.vendor ? '（' + e.vendor + '）' : '')
+        + '\n权重：' + (e.weights || '—')
+        + (e.clip ? '\n文本编码器：' + e.clip : '')
+        + (e.vae ? '\nVAE：' + e.vae : '');
+    }
+    if (h.engines && h.engines.length) syncEngines(h.engines, h.engine && h.engine.id);
+  }catch(e){
+    healthFails++;
+    $('dotBackend').className = 'dot err';
+    $('txtBackend').textContent = '未连接';
+    if (healthFails >= 2) $('offline').classList.add('show');
+  }
+}
+let errShown = false;
+function firstError(msg){ if (msg && !errShown){ errShown = true; toast(msg, true); } }
+setInterval(health, 4000); health();
+
+/* ---------------- 引擎切换 ---------------- */
+let engineSig = '';
+
+function syncEngines(list, currentId){
+  // 列表或安装状态变化时才重建下拉框，避免打断用户操作
+  const sig = list.map(e => e.id + ':' + (e.installed ? 1 : 0)).join('|');
+  if (sig !== engineSig){
+    engineSig = sig;
+    $('engine').innerHTML = list.map(e=>{
+      const label = e.name + (e.installed ? '' : '（未安装）');
+      return '<option value="'+e.id+'"'+(e.installed?'':' disabled')+'>'+label+'</option>';
+    }).join('');
+  }
+  if (currentId && $('engine').value !== currentId && document.activeElement !== $('engine')){
+    $('engine').value = currentId;
+  }
+  const cur = list.find(e => e.id === (currentId || $('engine').value));
+  $('engineNote').textContent = cur ? (cur.note || '') : '';
+  $('engine').title = cur ? (cur.name + (cur.vendor ? '（' + cur.vendor + '）' : '') + '\n' + (cur.weights || '未安装')) : '';
+  // 首次拿到引擎时，把步数对齐到该引擎的默认值（之后不再覆盖用户设置）
+  if (!engineInit && cur && cur.defaults && cur.defaults.steps){
+    engineInit = true;
+    $('steps').value = cur.defaults.steps;
+    // value 可能被 min/max 钳制，标签必须读回实际值
+    $('stepsVal').textContent = $('steps').value;
+  }
+  updateEta();   // 引擎 id 此时才可靠，批量预估算得出来
+}
+let engineInit = false;
+
+async function switchEngine(id){
+  try{
+    const r = await fetch('/api/engine', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || '切换失败');
+    const e = j.engine;
+    // 应用该引擎的默认步数
+    if (e.defaults && e.defaults.steps){
+      $('steps').value = e.defaults.steps;
+      $('stepsVal').textContent = $('steps').value;
+    }
+    syncEngines(j.engines, e.id);
+    toast('已切换到 ' + e.name + (e.precision ? ' · ' + e.precision : '')
+          + '（首张会重新加载权重）');
+    health();
+  }catch(e){ toast(e.message || String(e), true); }
+}
+
+$('engine').onchange = ()=> switchEngine($('engine').value);
+
+/* ---------------- 提示 ---------------- */
+let toastTimer=null;
+function toast(msg, bad){
+  const t=$('toast');
+  t.textContent=msg;
+  t.classList.toggle('bad', !!bad);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), 4200);
+}
+
+/* ---------------- 批量 ---------------- */
+// 秒/张的实测值，按「引擎 + 尺寸 + 步数」记。
+// 只按引擎记会给出错误预估（512 六步的 1.7 秒被套到 1024 八步上）。
+const perImage = {};
+
+function etaKey(engine, size, steps){
+  return engine + '|' + size + '|' + steps;
+}
+
+function batchCount(){
+  const v = $('batch').value;
+  if (v === 'custom'){
+    return Math.max(1, Math.min(32, Math.round(Number($('batchCustom').value) || 1)));
+  }
+  return Number(v);
+}
+
+function setBatch(n){
+  n = Math.max(1, Math.min(32, Math.round(Number(n) || 1)));
+  const opt = [...$('batch').options].find(o => o.value === String(n));
+  if (opt){
+    $('batch').value = String(n);
+    $('batchCustom').style.display = 'none';
+  } else {
+    $('batch').value = 'custom';
+    $('batchCustom').style.display = 'block';
+    $('batchCustom').value = n;
+  }
+  updateEta();
+}
+
+function updateEta(){
+  const n = batchCount();
+  if (n < 2){ $('batchEta').textContent = ''; return; }
+  const key = etaKey($('engine').value, $('size').value, $('steps').value);
+  const per = perImage[key];
+  if (!per){ $('batchEta').textContent = ''; return; }
+  const total = per * n;
+  const txt = total < 60 ? Math.round(total) + ' 秒'
+            : total < 3600 ? (total / 60).toFixed(1) + ' 分'
+            : (total / 3600).toFixed(1) + ' 小时';
+  $('batchEta').textContent = '约 ' + txt;
+}
+
+$('batch').onchange = ()=>{
+  const custom = $('batch').value === 'custom';
+  $('batchCustom').style.display = custom ? 'block' : 'none';
+  if (custom) $('batchCustom').focus();
+  updateEta();
+};
+$('batchCustom').oninput = updateEta;
+$('engine').addEventListener('change', updateEta);
+$('steps').addEventListener('input', updateEta);
+$('size').addEventListener('change', updateEta);
+
+/* ---------------- 模式 ---------------- */
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.onclick = ()=>{
+    mode = b.dataset.mode;
+    document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on', x===b));
+    $('refPanel').style.display = mode==='edit' ? 'block' : 'none';
+    $('cellSize').style.display = mode==='edit' ? 'none' : 'block';
+    $('cellEditRes').style.display = mode==='edit' ? 'block' : 'none';
+    $('hint').innerHTML = mode==='edit'
+      ? '输出尺寸跟随<b style="color:#8fa0bb">参考图比例</b>，由「编辑精度」决定总像素；参考图会真正参与构图。'
+      : '中文文字：整个提示词用中文写，目标文字用 <code>「」</code> 括起来。';
+  };
+});
+
+/* ---------------- 参考图 ---------------- */
+function renderRefs(){
+  const box = $('refs');
+  [...box.querySelectorAll('.thumb')].forEach(n=>n.remove());
+  refs.forEach((r, i)=>{
+    const d = document.createElement('div');
+    d.className = 'thumb';
+    d.innerHTML = '<img src="'+r.url+'" title="'+r.name+'"><button class="x">×</button>';
+    d.querySelector('.x').onclick = ()=>{ refs.splice(i,1); renderRefs(); };
+    box.insertBefore(d, $('btnAddRef'));
+  });
+  $('refCount').textContent = refs.length + ' / 10';
+}
+$('btnAddRef').onclick = ()=> $('fileInput').click();
+$('fileInput').onchange = async (e)=>{
+  const files = [...e.target.files].slice(0, 10 - refs.length);
+  e.target.value = '';
+  for (const f of files){
+    if (refs.length >= 10) { toast('最多 10 张参考图', true); break; }
+    try{
+      const buf = await f.arrayBuffer();
+      const r = await fetch('/api/upload', {method:'POST', headers:{'X-Filename': f.name, 'Content-Type':'application/octet-stream'}, body: buf});
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || '上传失败');
+      refs.push({name: j.name, url: '/api/view?type=input&filename=' + encodeURIComponent(j.name) + '&t=' + Date.now()});
+      renderRefs();
+    }catch(err){ toast('添加图片失败：' + err.message, true); }
+  }
+};
+
+/* ---------------- 历史（存服务端，端口变了也不丢） ---------------- */
+let histCache = [];
+
+async function loadHist(){
+  try{
+    const r = await fetch('/api/history');
+    const j = await r.json();
+    histCache = j.items || [];
+  }catch(e){ histCache = []; }
+  return histCache;
+}
+
+async function pushHist(entry){
+  try{
+    const r = await fetch('/api/history/add', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({entry})});
+    const j = await r.json();
+    if (r.ok){ histCache = j.items || []; renderHist(); }
+  }catch(e){ /* 静默：历史写失败不该打断出图 */ }
+}
+
+function renderHist(){
+  const list = histCache;
+  const box = $('hist');
+  $('histCount').textContent = list.length + ' 条';
+  if (!list.length){ box.innerHTML = '<div class="emptyhint">还没有历史记录</div>'; return; }
+  box.innerHTML = '';
+  list.forEach(it=>{
+    const d = document.createElement('div');
+    d.className = 'item';
+    const t = new Date((it.t || 0) * 1000);
+    const hh = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+    d.innerHTML = '<span class="tag '+(it.mode==='edit'?'edit':'')+'">'+(it.mode==='edit'?'编辑':'文生')+'</span>'
+                + '<span class="txt"></span><span class="time">'+hh+'</span>'
+                + '<button class="del" title="删除这条">✕</button>';
+    d.querySelector('.txt').textContent = it.prompt;
+    d.querySelector('.del').onclick = (ev)=>{
+      ev.stopPropagation();          // 不要同时触发"恢复设置"
+      deleteHist([it.id]);
+    };
+    d.onclick = ()=> restore(it);
+    box.appendChild(d);
+  });
+}
+
+async function deleteHist(ids){
+  ids = (ids || []).filter(Boolean);
+  if (!ids.length) return;
+  const what = ids.length === 1 ? '这条历史记录' : ids.length + ' 条历史记录';
+  if (!confirm('删除' + what + '？\n图片文件不会被删除。')) return;
+  try{
+    const r = await fetch('/api/history/delete', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ids})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || '删除失败');
+    histCache = j.items || [];
+    renderHist();
+  }catch(e){ toast(netMsg(e), true); }
+}
+
+$('histClear').onclick = async ()=>{
+  if (!histCache.length){ toast('历史本来就是空的'); return; }
+  if (!confirm('清空全部 ' + histCache.length + ' 条历史记录？\n图片文件不会被删除。')) return;
+  try{
+    const r = await fetch('/api/history/clear', {method:'POST'});
+    if (!r.ok) throw new Error('清空失败');
+    histCache = [];
+    renderHist();
+    toast('历史已清空');
+  }catch(e){ toast(netMsg(e), true); }
+};
+
+/* 首次启动把旧的 localStorage 历史迁移到服务端 */
+async function initHistory(){
+  await loadHist();
+  if (!histCache.length){
+    try{
+      const raw = localStorage.getItem(HIST_KEY);
+      if (raw){
+        const old = JSON.parse(raw);
+        if (Array.isArray(old) && old.length){
+          const r = await fetch('/api/history/import', {method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({items: old})});
+          const j = await r.json();
+          histCache = j.items || [];
+          localStorage.removeItem(HIST_KEY);
+          if (j.imported) toast('已迁移 ' + j.imported + ' 条旧历史');
+        }
+      }
+    }catch(e){}
+  }
+  // 用历史里的实测耗时给批量预估打底（同引擎+同尺寸+同步数才采用）
+  histCache.forEach(it=>{
+    if (!it.engine || !it.elapsed || !it.batch || !it.size) return;
+    const k = etaKey(it.engine, it.size, it.steps);
+    if (!(k in perImage)) perImage[k] = it.elapsed / it.batch;
+  });
+  renderHist();
+  updateEta();
+}
+function restore(it){
+  $('prompt').value = it.prompt;
+  $('charCount').textContent = it.prompt.length + ' 字';
+  $('steps').value = it.steps; $('stepsVal').textContent = it.steps;
+  setBatch(it.batch || 1);
+  if (it.clip) $('clip').value = it.clip;
+  if (it.engine && $('engine').value !== it.engine){
+    $('engine').value = it.engine;
+    switchEngine(it.engine);
+  }
+  if (it.size) $('size').value = it.size;
+  if (it.resolution) $('editRes').value = String(it.resolution);
+  if (it.mode === 'edit' && it.refs && it.refs.length){
+    // 只存了文件名，URL 现拼——换端口/迁移后依然有效
+    refs = it.refs.map(n=>({name:n, url:'/api/view?type=input&filename='+encodeURIComponent(n)}));
+    renderRefs();
+  }
+  if (it.mode) document.querySelector('.tabs button[data-mode="'+it.mode+'"]').click();
+  if (it.file){
+    showImage('/api/view?filename=' + encodeURIComponent(it.file) + '&t=' + Date.now());
+    $('mSeed').textContent = it.seed || '—';
+    $('btnSave').disabled = false;
+    $('btnAsRef').disabled = false;
+    $('btnAgain').disabled = false;
+    current = 0;
+    $('img').dataset.file = it.file;
+  }
+  toast('已恢复该次设置');
+}
+
+/* ---------------- 生成 ---------------- */
+function showImage(url){
+  const img = $('img');
+  img.src = url; img.style.display='block';
+  $('empty').style.display='none';
+}
+
+async function generate(){
+  if (busy) return;
+  const prompt = $('prompt').value.trim();
+  if (!prompt){ toast('先写点提示词', true); $('prompt').focus(); return; }
+  if (mode === 'edit' && !refs.length){ toast('编辑模式需要至少一张参考图', true); return; }
+
+  const [w,h] = $('size').value.split('x').map(Number);
+  const body = {
+    prompt, mode,
+    engine: $('engine').value,
+    width:w, height:h,
+    resolution: Number($('editRes').value || 1024),
+    steps:Number($('steps').value),
+    batch: batchCount(),
+    clip:$('clip').value,
+    refs: mode==='edit' ? refs.map(r=>r.name) : [],
+    seed:$('randSeed').checked ? 0 : Number($('seed').value || 0)
+  };
+
+  busy = true;
+  userPicked = false;          // 新一轮任务，恢复自动跟随
+  stopping = false;
+  $('btnGen').style.display = 'none';
+  $('btnStop').disabled = false;
+  $('btnStop').innerHTML = '■ 停止生成　<span style="opacity:.7;font-weight:400">Esc</span>';
+  $('btnStop').style.display = 'block';
+  $('bar').style.display='block';
+  const t0 = performance.now();
+  const tick = setInterval(()=>{ $('mTime').textContent = ((performance.now()-t0)/1000).toFixed(1)+' s'; }, 200);
+
+  try{
+    const r = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.error || '提交失败');
+    curJob = res.id;
+
+    let fin = null;
+    let shown = 0;                 // 已渲染进结果条的张数
+    while (true){
+      await new Promise(s=>setTimeout(s,450));
+      const j = await (await fetch('/api/progress?id='+encodeURIComponent(res.id))).json();
+      if (j.error) throw new Error(j.error);
+      if (j.images && j.images.length){
+        $('mTime').textContent = j.elapsed + ' s';
+        if (j.peak_mib) $('mVram').textContent = (j.peak_mib/1024).toFixed(1)+' GB';
+        $('mSeed').textContent = j.images[j.images.length-1].seed;
+        if (j.total > 1) $('mFile').textContent = j.images.length + ' / ' + j.total;
+        // 只在张数变化时重建结果条；用户已手动选图的话不要再抢回第一张
+        if (j.images.length !== shown){
+          shown = j.images.length;
+          results = j.images.map(im=>({...im, url:'/api/view?filename='+encodeURIComponent(im.filename)+'&subfolder='+encodeURIComponent(im.subfolder||'')}));
+          renderGallery();
+          if (!userPicked){
+            showImage(results[0].url);
+            current = 0;
+            $('img').dataset.file = results[0].filename;
+            $('mSeed').textContent = results[0].seed;
+          }
+        }
+        $('btnSave').disabled = false;
+        $('btnAsRef').disabled = false;
+        $('btnAgain').disabled = false;
+      }
+      if (j.done){ fin = j; break; }   // 停止后张数会小于 total，别在这里 continue
+    }
+    const stopped = !!(fin && fin.cancelled);
+    // 记下实测的秒/张，用于批量耗时预估（中途停止的样本不准，不采）
+    if (!stopped && fin && fin.images && fin.images.length){
+      perImage[etaKey(body.engine, $('size').value, body.steps)] =
+        Math.max(0.3, (fin.elapsed || 0) / fin.images.length);
+      updateEta();
+    }
+    if (stopped){
+      $('mTime').textContent = '已停止';
+      if (fin.images && fin.images.length){
+        if (fin.total > 1) $('mFile').textContent = fin.images.length + ' / ' + fin.total + '（已停止）';
+      } else {
+        $('mFile').textContent = '';   // 一张没出，别留着上一轮的计数
+      }
+      toast(fin.images && fin.images.length
+        ? '已停止，保留已生成的 ' + fin.images.length + ' 张'
+        : '已停止');
+    }
+    // 历史由服务端在出图完成时写入，这里只刷新列表
+    await loadHist();
+    renderHist();
+  }catch(e){
+    toast(netMsg(e), true);
+    $('mTime').textContent = '失败';
+    health();
+  }finally{
+    clearInterval(tick);
+    busy = false;
+    stopping = false;
+    curJob = null;
+    $('btnStop').style.display = 'none';
+    $('btnGen').style.display = 'block';
+    $('btnGen').disabled = false;
+    $('btnGen').innerHTML = '生成　<span style="opacity:.7;font-weight:400">Ctrl+Enter</span>';
+    $('bar').style.display = 'none';
+    health();
+  }
+}
+
+async function stopGen(){
+  if (!busy || !curJob || stopping) return;
+  stopping = true;
+  $('btnStop').disabled = true;
+  $('btnStop').textContent = '正在停止…';
+  try{
+    await fetch('/api/cancel', {method:'POST', headers:{'Content-Type':'application/json'},
+                                body:JSON.stringify({id: curJob})});
+  }catch(e){
+    toast(netMsg(e), true);
+    stopping = false;
+    $('btnStop').disabled = false;
+    $('btnStop').innerHTML = '■ 停止生成　<span style="opacity:.7;font-weight:400">Esc</span>';
+  }
+  // 不在这里恢复按钮：等轮询看到 done，保证后端线程已经收尾
+}
+
+function renderGallery(){
+  const g = $('gallery');
+  g.innerHTML = '';
+  results.forEach((r,i)=>{
+    const im = document.createElement('img');
+    im.src = r.url;
+    im.onclick = ()=>{
+      userPicked = true;          // 用户手动选图后，轮询不再把预览拉回第一张
+      current = i;
+      showImage(r.url);
+      $('img').dataset.file = r.filename;
+      $('mSeed').textContent = r.seed;
+    };
+    g.appendChild(im);
+  });
+  $('galleryEmpty').style.display = results.length ? 'none' : 'block';
+}
+
+/* ---------------- 动作 ---------------- */
+$('btnGen').onclick = generate;
+$('btnStop').onclick = stopGen;
+$('btnAgain').onclick = generate;
+$('btnSave').onclick = ()=>{
+  const src = $('img').src;
+  if (!src.startsWith('http') && !src.startsWith('/')) return;
+  const a = document.createElement('a');
+  a.href = src; a.download = 'qwen-' + Date.now() + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+$('btnAsRef').onclick = async ()=>{
+  const fn = $('img').dataset.file;
+  if (!fn) return;
+  try{
+    const r = await fetch('/api/ref-from-output', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:fn})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || '失败');
+    if (refs.length >= 10) { toast('参考图已满 10 张', true); return; }
+    refs.push({name:j.name, url:'/api/view?type=input&filename='+encodeURIComponent(j.name)+'&t='+Date.now()});
+    renderRefs();
+    document.querySelector('.tabs button[data-mode="edit"]').click();
+    toast('已加入参考图，切到编辑模式');
+  }catch(e){ toast('操作失败：'+e.message, true); }
+};
+$('btnQuit').onclick = async ()=>{
+  if (!confirm('退出 ImageLab？会释放显存。')) return;
+  try{ await fetch('/api/quit',{method:'POST'}); }catch(e){}
+  document.body.innerHTML = '<div style="height:100vh;display:flex;align-items:center;justify-content:center;'
+    + 'flex-direction:column;gap:10px;color:#8b98ad;font:14px/1.8 \'Microsoft YaHei UI\',sans-serif">'
+    + '<div style="font-size:20px;color:#5b8cff">已退出</div><div>显存已释放，可以关闭这个窗口了</div></div>';
+  setTimeout(()=>{ try{ window.close(); }catch(e){} }, 400);
+};
+
+/* ---------------- PE 提示词增强 ---------------- */
+let preEnhance = null;
+$('btnEnhance').onclick = async ()=>{
+  const p = $('prompt').value.trim();
+  if (!p) { toast('先写点提示词', true); $('prompt').focus(); return; }
+  const b = $('btnEnhance');
+  b.disabled = true; b.textContent = '增强中…';
+  const t0 = performance.now();
+  try{
+    const r = await fetch('/api/enhance', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({prompt:p, mode, refs: mode==='edit' ? refs.map(x=>x.name) : []})});
+    const j = await r.json();
+    if (j.refused){
+      // 模型的安全策略拒绝：原文保持不动，别把提示词换成错误信息
+      toast('增强被模型的安全策略拒绝，提示词保持原样。\n'
+          + '多半是描述里出现了"未成年/性相关"的歧义，改掉相关措辞再试，或跳过增强直接生成。', true);
+      return;
+    }
+    if (!r.ok) throw new Error(j.error || '增强失败');
+    preEnhance = p;
+    $('prompt').value = j.text;
+    $('charCount').textContent = j.text.length + ' 字';
+    $('btnUndoEnhance').style.display = 'inline-block';
+    toast('已增强（' + j.elapsed + ' 秒），可以直接改');
+  }catch(e){
+    toast(e.message || String(e), true);
+  }finally{
+    b.disabled = false; b.textContent = '✦ 增强';
+  }
+};
+$('btnUndoEnhance').onclick = ()=>{
+  if (!preEnhance) return;
+  $('prompt').value = preEnhance;
+  $('charCount').textContent = preEnhance.length + ' 字';
+  $('btnUndoEnhance').style.display = 'none';
+  preEnhance = null;
+};
+
+/* ---------------- 杂项 ---------------- */
+$('steps').oninput = ()=> $('stepsVal').textContent = $('steps').value;
+$('randSeed').onchange = ()=> { $('seed').disabled = $('randSeed').checked; };
+$('prompt').oninput = ()=> $('charCount').textContent = $('prompt').value.length + ' 字';
+$('prompt').addEventListener('keydown', e=>{
+  if ((e.ctrlKey||e.metaKey) && e.key === 'Enter'){ e.preventDefault(); generate(); }
+});
+document.querySelectorAll('.subtab span').forEach(s=>{
+  s.onclick = ()=>{
+    if (s.dataset.panel === 'library'){ openLibrary(); return; }
+    document.querySelectorAll('.subtab span').forEach(x=>x.classList.toggle('on', x===s));
+    const g = s.dataset.panel === 'gallery';
+    $('panelGallery').style.display = g ? 'block' : 'none';
+    $('panelHistory').style.display = g ? 'none' : 'block';
+  };
+});
+initHistory();
+
+/* ---------------- 图库 ---------------- */
+const LIB_PAGE = 60;
+let libItems = [], libTotal = 0, libOffset = 0, libSel = new Set(), libQ = '';
+
+function fmtSize(n){
+  if (n > 1048576) return (n/1048576).toFixed(1) + ' MB';
+  return Math.round(n/1024) + ' KB';
+}
+function fmtTime(ts){
+  const d = new Date(ts*1000), p = x => String(x).padStart(2,'0');
+  return p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+async function openLibrary(){
+  $('libModal').classList.add('show');
+  await loadLibrary(true);
+}
+function closeLibrary(){ $('libModal').classList.remove('show'); }
+
+async function loadLibrary(reset){
+  if (reset){ libOffset = 0; libItems = []; libSel.clear(); }
+  try{
+    const r = await fetch('/api/library?limit=' + LIB_PAGE + '&offset=' + libOffset + '&q=' + encodeURIComponent(libQ));
+    const j = await r.json();
+    libTotal = j.total || 0;
+    libItems = libItems.concat(j.items || []);
+    libOffset = libItems.length;
+    renderLibrary();
+  }catch(e){ toast(netMsg(e), true); }
+}
+
+function renderLibrary(){
+  const grid = $('libGrid');
+  grid.innerHTML = '';
+  if (!libItems.length){
+    grid.innerHTML = '<div class="emptyhint" style="grid-column:1/-1">没有匹配的图片</div>';
+  }
+  libItems.forEach(it=>{
+    const d = document.createElement('div');
+    d.className = 'libitem' + (libSel.has(it.name) ? ' sel' : '');
+    d.innerHTML =
+      '<input type="checkbox" class="pick"' + (libSel.has(it.name) ? ' checked' : '') + '>' +
+      '<button class="del" title="删除">✕</button>' +
+      '<img loading="lazy" src="/api/view?filename=' + encodeURIComponent(it.name) + '&t=' + it.mtime + '">' +
+      '<div class="cap" title="' + it.name + '">' + it.name + '</div>';
+    const thumb = d.querySelector('img');
+    thumb.onerror = ()=>{
+      thumb.style.display = 'none';
+      d.style.display = 'flex';
+      d.style.alignItems = 'center';
+      d.style.justifyContent = 'center';
+      d.style.minHeight = '148px';
+      d.style.color = '#5d6a80';
+      d.style.fontSize = '11px';
+      d.insertAdjacentHTML('afterbegin', '<div style="position:absolute;top:70px;left:0;right:0;text-align:center">加载失败</div>');
+    };
+    const chk = d.querySelector('.pick');
+    chk.onchange = ()=>{ chk.checked ? libSel.add(it.name) : libSel.delete(it.name); d.classList.toggle('sel', chk.checked); syncSel(); };
+    thumb.onclick = ()=>{
+      showImage('/api/view?filename=' + encodeURIComponent(it.name) + '&t=' + it.mtime);
+      $('img').dataset.file = it.name;
+      $('mFile').textContent = it.name;
+      $('btnSave').disabled = false;
+      $('btnAsRef').disabled = false;
+      closeLibrary();
+    };
+    d.querySelector('.del').onclick = async (ev)=>{
+      ev.stopPropagation();
+      if (!confirm('删除这张图？\n' + it.name)) return;
+      await deleteFiles([it.name]);
+    };
+    grid.appendChild(d);
+  });
+  $('libCount').textContent = '共 ' + libTotal + ' 张';
+  $('libMoreWrap').style.display = libItems.length < libTotal ? 'block' : 'none';
+  syncSel();
+}
+
+function syncSel(){
+  $('libSelInfo').textContent = '已选 ' + libSel.size + ' 张';
+  $('libDelete').disabled = libSel.size === 0;
+  const all = libItems.length > 0 && libItems.every(it=>libSel.has(it.name));
+  $('libAll').checked = all;
+  const bytes = libItems.reduce((s,it)=> s + it.size, 0);
+  $('libSizeInfo').textContent = '当前列表 ' + libItems.length + ' 张 · ' + fmtSize(bytes);
+}
+
+async function deleteFiles(names){
+  try{
+    const r = await fetch('/api/library/delete', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({names})});
+    const j = await r.json();
+    if (j.failed && j.failed.length) toast('有 ' + j.failed.length + ' 张删除失败', true);
+    const shown = $('img').dataset.file;
+    if (shown && names.includes(shown)){
+      $('img').style.display = 'none'; $('img').removeAttribute('src');
+      $('empty').style.display = 'block'; delete $('img').dataset.file;
+      $('btnSave').disabled = true; $('btnAsRef').disabled = true;
+    }
+    await loadLibrary(true);
+    results = results.filter(r=> !names.includes(r.filename));
+    renderGallery();
+  }catch(e){ toast(netMsg(e), true); }
+}
+
+$('libClose').onclick = closeLibrary;
+$('libModal').onclick = (e)=>{ if (e.target === $('libModal')) closeLibrary(); };
+$('libRefresh').onclick = ()=> loadLibrary(true);
+$('libMore').onclick = ()=> loadLibrary(false);
+$('libAll').onchange = ()=>{
+  if ($('libAll').checked) libItems.forEach(it=>libSel.add(it.name));
+  else libSel.clear();
+  renderLibrary();
+};
+$('libDelete').onclick = async ()=>{
+  const names = [...libSel];
+  if (!names.length) return;
+  if (!confirm('删除选中的 ' + names.length + ' 张图？此操作不可撤销。')) return;
+  await deleteFiles(names);
+};
+$('libOpenFolder').onclick = async ()=>{
+  try{
+    await fetch('/api/open-folder', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name: $('img').dataset.file || ''})});
+  }catch(e){ toast(netMsg(e), true); }
+};
+let libTimer = null;
+$('libSearch').oninput = (e)=>{
+  clearTimeout(libTimer);
+  libTimer = setTimeout(()=>{ libQ = e.target.value.trim(); loadLibrary(true); }, 300);
+};
+document.addEventListener('keydown', (e)=>{
+  if (e.key !== 'Escape') return;
+  if ($('libModal').classList.contains('show')) closeLibrary();
+  else if (busy) stopGen();          // 生成中按 Esc 直接停
+});
+
+// 支持 /?mode=edit 直接打开编辑模式，/?lib=1 直接打开图库
+const _qs = new URLSearchParams(location.search);
+if (_qs.get('mode') === 'edit') {
+  document.querySelector('.tabs button[data-mode="edit"]').click();
+}
+if (_qs.get('lib') === '1') {
+  openLibrary();
+}
+if (_qs.get('batch')) {
+  setBatch(Number(_qs.get('batch')));
+}
+if (_qs.get('tab') === 'history' || _qs.get('tab') === 'gallery') {
+  document.querySelector('.subtab span[data-panel="' + _qs.get('tab') + '"]').click();
+}
+
+</script>
+</body>
+</html>

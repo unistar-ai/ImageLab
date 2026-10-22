@@ -1,0 +1,14 @@
+# 本机运行时产物，不进仓库
+_window_profile/
+*.log
+history.json
+*.tmp
+__pycache__/
+
+# 界面截图只留本地，不公开
+preview*.png
+
+# 系统杂项
+Thumbs.db
+.DS_Store
+desktop.ini
