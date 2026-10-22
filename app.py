@@ -708,7 +708,11 @@ def watchdog(title: str) -> None:
 
     只用窗口标题判断会误杀：Edge 在某些状态下（切标签、全屏、失焦重建窗口）
     标题枚举可能漏掉，实测导致过"服务凭空消失、页面 Failed to fetch"。
-    因此要求「窗口连续 3 次找不到」且「心跳已停 30 秒」两个条件同时成立。
+    因此要求「窗口连续 3 次找不到（约 6 秒）」且「心跳已停 15 秒」两个条件同时成立。
+
+    心跳由前端每 8 秒 POST /api/beat 送来，两种方法都要记（touch_heartbeat）。
+    注意：窗口最小化或锁屏时 Chromium 会冻结定时器，心跳会停——所以心跳只能
+    用来"确认没有人在看"，不能单独作为退出依据。
     """
     time.sleep(5)
     missing = 0
@@ -735,6 +739,17 @@ SHUTDOWN = threading.Event()
 
 def request_shutdown():
     SHUTDOWN.set()
+
+
+def touch_heartbeat() -> None:
+    """记录一次前端心跳。GET/POST 都要认。
+
+    前端用的是 POST（ui.html 里 fetch('/api/beat', {method:'POST'})），而这里
+    曾经只在 do_GET 里处理，POST 一路落到 404。结果 LAST_BEAT 永远停在启动
+    时刻，看门狗里"心跳已停"那半句恒为真，双保险退化成了单保险。
+    """
+    global LAST_BEAT
+    LAST_BEAT = time.time()
 
 
 # ------------------------------------------------------------------ 图库
@@ -950,8 +965,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, str(exc).encode(), "text/plain")
 
         if path == "/api/beat":
-            global LAST_BEAT
-            LAST_BEAT = time.time()
+            touch_heartbeat()
             return self._json(200, {"ok": True})
 
         self._json(404, {"error": "not found"})
@@ -959,6 +973,11 @@ class Handler(BaseHTTPRequestHandler):
     # ---------- POST ----------
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
+
+        # 心跳必须放在解析 JSON 之前：前端的 beat() 是不带 body 的 POST
+        if path == "/api/beat":
+            touch_heartbeat()
+            return self._json(200, {"ok": True})
 
         if path == "/api/upload":
             n = int(self.headers.get("Content-Length") or 0)
